@@ -1,4 +1,4 @@
-module go-code-test-analyzer
+module gcta
 
 go 1.20
 
