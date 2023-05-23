@@ -20,10 +20,10 @@ func printCounts(fileCounts map[string]*FileAnalysis) {
 		row := []string{colorizedFilename, colorizedFunctions, colorizedTestFunctions, colorizedPercentage}
 		table.Append(row)
 	}
-
-	appendTotalRow(table, total)
+	percentageOfTotal := calculatePercentage(total.TestFunctions, total.Functions)
+	_, _, _, colorizedPercentageOfTotal := getColorizedStrings("Total", total.Functions, total.TestFunctions, percentageOfTotal)
+	appendTotalRow(table, total, colorizedPercentageOfTotal)
 	table.Render()
-	printPercentageOfTestFunctions(total.Functions, total.TestFunctions)
 }
 
 func setupTable() *tablewriter.Table {
@@ -73,23 +73,9 @@ func getColorizedStrings(filename string, functions, testFunctions int, percenta
 	return colorizedFilename, colorizedFunctions, colorizedTestFunctions, colorizedPercentage
 }
 
-func appendTotalRow(table *tablewriter.Table, total *FileAnalysis) {
+func appendTotalRow(table *tablewriter.Table, total *FileAnalysis, colorizedPercentageOfTotal string) {
 	table.Append([]string{"", "", "", ""})
-	table.Append([]string{"Total", color.YellowString(fmt.Sprintf("%d", total.Functions)), color.HiYellowString(fmt.Sprintf("%d", total.TestFunctions))})
-}
-
-func printPercentageOfTestFunctions(functions, testFunctions int) {
-	percentage := calculatePercentage(testFunctions, functions)
-	var colorizedPercentage string
-	switch {
-	case percentage < 20:
-		colorizedPercentage = color.RedString(fmt.Sprintf("%.2f%%", percentage))
-	case percentage < 60:
-		colorizedPercentage = color.YellowString(fmt.Sprintf("%.2f%%", percentage))
-	default:
-		colorizedPercentage = color.GreenString(fmt.Sprintf("%.2f%%", percentage))
-	}
-	fmt.Println("Percentage of test functions: ", colorizedPercentage)
+	table.Append([]string{"Total", color.YellowString(fmt.Sprintf("%d", total.Functions)), color.HiYellowString(fmt.Sprintf("%d", total.TestFunctions)), colorizedPercentageOfTotal})
 }
 
 func convertToMarkdown(fileCounts map[string]*FileAnalysis) string {
@@ -97,16 +83,31 @@ func convertToMarkdown(fileCounts map[string]*FileAnalysis) string {
 	total := aggregateCounts(fileCounts)
 	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', tabwriter.TabIndent)
 
-	fmt.Fprintln(w, "| Filename | Functions | Test Functions |")
-	fmt.Fprintln(w, "| --- | --- | --- |")
+	fmt.Fprintln(w, "| Filename | Functions | Test Functions | Percentage |")
+	fmt.Fprintln(w, "| --- | --- | --- | --- |")
 
 	for filename, analysis := range fileCounts {
-		fmt.Fprintf(w, "| %s | %d | %d |\n", filename, analysis.Functions, analysis.TestFunctions)
+		fmt.Fprintf(w, "| %s | %d | %d | %.2f%% |\n", filename, analysis.Functions, analysis.TestFunctions, calculatePercentage(analysis.TestFunctions, analysis.Functions))
 	}
-	fmt.Fprintf(w, "| **Total** | **%d** | **%d** |\n", total.Functions, total.TestFunctions)
+	fmt.Fprintf(w, "| **Total** | **%d** | **%d** | **%.2f%%** |\n", total.Functions, total.TestFunctions, calculatePercentage(total.TestFunctions, total.Functions))
 
-	fmt.Fprintln(w, "Percentage of test functions: ", float64(total.TestFunctions)/float64(total.Functions)*100)
+	w.Flush()
 
+	return buf.String()
+}
+
+func convertToHtmlTable(fileCounts map[string]*FileAnalysis) string {
+	var buf bytes.Buffer
+	total := aggregateCounts(fileCounts)
+	w := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', tabwriter.TabIndent)
+
+	fmt.Fprintln(w, "<table>")
+	fmt.Fprintln(w, "<tr><th>Filename</th><th>Functions</th><th>Test Functions</th><th>Percentage</th></tr>")
+	for filename, analysis := range fileCounts {
+		fmt.Fprintf(w, "<tr><td>%s</td><td>%d</td><td>%d</td><td>%.2f%%</td></tr>\n", filename, analysis.Functions, analysis.TestFunctions, calculatePercentage(analysis.TestFunctions, analysis.Functions))
+	}
+	fmt.Fprintf(w, "<tr><td><strong>Total</strong></td><td><strong>%d</strong></td><td><strong>%d</strong></td><td><strong>%.2f%%</strong></td></tr>\n", total.Functions, total.TestFunctions, calculatePercentage(total.TestFunctions, total.Functions))
+	fmt.Fprintln(w, "</table>")
 	w.Flush()
 
 	return buf.String()
