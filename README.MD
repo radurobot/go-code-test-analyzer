@@ -11,7 +11,15 @@ Go Code Test Analyzer (GCTA) is a tool built with Go to analyze Go codebases. It
 
 ## Installation
 
-To install GCTA, you need to have Go installed on your system. Once you have Go installed:
+### Using brew:
+
+Install it using:
+`brew install radurobot/gcta/gcta`
+
+Or `brew tap radurobot/gcta` and then `brew install gcta`.
+
+### Manual
+To manually install GCTA, you need to have Go installed on your system. Once you have Go installed:
 
 1. Clone the repository:
    ```
@@ -42,10 +50,6 @@ Example:
 ```
 gcta -markdown
 ```
-
-## Contributing
-
-Contributions to GCTA are welcome! Please see our [contributing guide](CONTRIBUTING.md) for more details.
 
 ## License
 
